@@ -91,21 +91,30 @@ object Form1: TForm1
       #1057#1083#1086#1078#1085#1099#1081' ')
   end
   object Button4: TButton
-    Left = 568
+    Left = 512
     Top = 474
-    Width = 75
+    Width = 131
     Height = 25
-    Caption = #1057#1086#1093#1088#1072#1085#1080#1090#1100
+    Caption = #1057#1086#1093#1088#1072#1085#1080#1090#1100' '#1080#1075#1088#1091
     TabOrder = 2
     OnClick = Button4Click
   end
+  object Button5: TButton
+    Left = 512
+    Top = 432
+    Width = 131
+    Height = 25
+    Caption = #1057#1086#1093#1088#1072#1085#1080#1090#1100' '#1089#1090#1072#1090#1080#1089#1090#1080#1082#1091
+    TabOrder = 3
+    OnClick = Button5Click
+  end
   object Timer1: TTimer
     OnTimer = Timer1Timer
-    Left = 544
-    Top = 409
+    Left = 504
+    Top = 361
   end
   object SaveDialog1: TSaveDialog
-    Left = 536
-    Top = 464
+    Left = 560
+    Top = 368
   end
 end

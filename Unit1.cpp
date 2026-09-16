@@ -16,6 +16,7 @@ TForm1 *Form1;
 TPiece Board[8][8];
 PieceColor CurrentPlayer;
 int SelectedX = -1, SelectedY = -1;
+TStringList *GameHistory;
 bool IsGameOver = false;
 bool PossibleMoves[8][8];
 int GameSeconds = 0;
@@ -35,11 +36,16 @@ bool WhiteLeftRookMoved = false;
 bool WhiteRightRookMoved = false;
 bool BlackLeftRookMoved = false;
 bool BlackRightRookMoved = false;
+int BotFromRow = -1;
+int BotFromCol = -1;
+int BotToRow = -1;
+int BotToCol = -1;
 AnsiString GameOverMessage = "";
 
 //---------------------------------------------------------------------------
 __fastcall TForm1::TForm1(TComponent* Owner) : TForm(Owner)
 {
+	GameHistory = new TStringList();
 	SetupBoard();
 	DrawBoard();
 	UpdateStatusLabel();
@@ -131,6 +137,12 @@ void TForm1::DrawBoard()
 				buffer->Canvas->Brush->Color = (TColor)RGB(240, 217, 181);
 			else
 				buffer->Canvas->Brush->Color = (TColor)RGB(181, 136, 99);
+
+			if ((row == BotFromRow && col == BotFromCol) || (row == BotToRow &&
+			 col == BotToCol))
+			{
+				buffer->Canvas->Brush->Color = clYellow;
+			}
 
 			if (SelectedX == col && SelectedY == row)
 				buffer->Canvas->Brush->Color = clYellow;
@@ -794,23 +806,40 @@ TShiftState Shift, int X, int Y)
     // =========================
     // 2. ПОПЫТКА ХОДА
     // =========================
-    if (PossibleMoves[row][col])
-    {
-        ExecuteMove(SelectedY, SelectedX, row, col);
+	if (PossibleMoves[row][col])
+	{
+		int fromRow = SelectedY;
+		int fromCol = SelectedX;
+		TPiece movingPiece = Board[fromRow][fromCol];
+		bool capture = Board[row][col].Type != None;
+		if (movingPiece.Type == Pawn &&
+			EnPassantPossible &&
+			row == EnPassantRow &&
+			col == EnPassantCol &&
+			Board[row][col].Type == None)
+		{
+			capture = true;
+		}
+		ExecuteMove(fromRow, fromCol, row, col);
 		MoveCount++;
+		SelectedX = -1;
+		SelectedY = -1;
+		ClearPossibleMoves();
+		UpdateGameState();
+		AddMoveToHistory(
+			fromRow, fromCol,
+			row, col,
+			movingPiece,
+			capture,
+			CheckFlag
+		);
 
-        SelectedX = -1;
-        SelectedY = -1;
-        ClearPossibleMoves();
-
-        UpdateGameState();
-
-        if (CheckGameOver())
-        {
-            DrawBoard();
-            UpdateStatusLabel();
+		if (CheckGameOver())
+		{
+			DrawBoard();
+			UpdateStatusLabel();
 			return;
-        }
+		}
 
 		CurrentPlayer = (CurrentPlayer == White) ? Black : White;
 
@@ -831,7 +860,7 @@ TShiftState Shift, int X, int Y)
 		{
             SelectedX = -1;
             SelectedY = -1;
-            ClearPossibleMoves();
+			ClearPossibleMoves();
         }
     }
 
@@ -839,6 +868,48 @@ TShiftState Shift, int X, int Y)
 	UpdateStatusLabel();
 }
 //---------------------------------------------------------------------------
+void TForm1::AddMoveToHistory(int fromRow, int fromCol, int toRow, int toCol, TPiece piece, bool capture,bool check)
+{
+    AnsiString player =
+        (piece.Color == White) ? "Белые" : "Чёрные";
+	AnsiString pieceName;
+    switch (piece.Type)
+    {
+        case Pawn:   pieceName = "Пешка"; break;
+        case Knight: pieceName = "Конь"; break;
+        case Bishop: pieceName = "Слон"; break;
+        case Rook:   pieceName = "Ладья"; break;
+        case Queen:  pieceName = "Ферзь"; break;
+        case King:   pieceName = "Король"; break;
+    }
+    char fromFile = 'A' + fromCol;
+    int fromRank = 8 - fromRow;
+    char toFile = 'A' + toCol;
+    int toRank = 8 - toRow;
+    GameHistory->Add(
+        "Ход " + IntToStr(MoveCount)
+    );
+    GameHistory->Add(
+        "Игрок: " + player
+    );
+    GameHistory->Add(
+        "Фигура: " + pieceName
+    );
+    GameHistory->Add(
+        "Ход: " +
+        AnsiString(fromFile) + IntToStr(fromRank) +
+        " -> " +
+        AnsiString(toFile) + IntToStr(toRank)
+    );
+    GameHistory->Add(
+        "Взятие: " + String(capture ? "Да" : "Нет")
+    );
+    GameHistory->Add(
+        "Шах: " + String(check ? "Да" : "Нет")
+    );
+    GameHistory->Add("");
+}
+
 bool TForm1::CheckGameOver()
 {
 	 UpdateGameState();
@@ -934,7 +1005,7 @@ void TForm1::UpdateGameState()
     bool hasMoves =
         HasLegalMoves(sideToMove);
 
-    IsCheckmate =
+	IsCheckmate =
         CheckFlag && !hasMoves;
 
     IsStalemate =
@@ -947,6 +1018,7 @@ void TForm1::UpdateGameState()
 void __fastcall TForm1::Button1Click(TObject *Sender)
 {
 	SetupBoard();
+    GameHistory->Clear();
 	CheckFlag = false;
 	IsCheckmate = false;
 	IsStalemate = false;
@@ -963,6 +1035,10 @@ void __fastcall TForm1::Button1Click(TObject *Sender)
 	BlackLeftRookMoved = false;
 	BlackRightRookMoved = false;
 	GameOverMessage = "";
+    BotFromRow = -1;
+	BotFromCol = -1;
+	BotToRow = -1;
+	BotToCol = -1;
 	ClearPossibleMoves();
 	DrawBoard();
 	UpdateGameTimerLabel();
@@ -1281,6 +1357,15 @@ void TForm1::SmartMove()
 
 	ScoredMove best = moves[index];
 
+    BotFromRow = best.fromRow;
+	BotFromCol = best.fromCol;
+
+	BotToRow = best.toRow;
+	BotToCol = best.toCol;
+
+	TPiece movingPiece = Board[best.fromRow][best.fromCol];
+	bool capture = Board[best.toRow][best.toCol].Type != None;
+
 	// Выполняем ход
 	SelectedX = -1;
 	SelectedY = -1;
@@ -1296,7 +1381,10 @@ void TForm1::SmartMove()
 
 	UpdateGameState();
 
-    // Проверяем окончание игры
+	AddMoveToHistory(best.fromRow, best.fromCol, best.toRow, best.toCol,
+	movingPiece,capture,CheckFlag);
+
+	// Проверяем окончание игры
 	if (CheckGameOver())
 	{
 		DrawBoard();
@@ -1402,6 +1490,22 @@ void __fastcall TForm1::Button4Click(TObject *Sender)
     {
         delete list;
     }
+}
+//---------------------------------------------------------------------------
+
+
+void __fastcall TForm1::Button5Click(TObject *Sender)
+{
+	 if (GameHistory->Count == 0)
+		{
+			ShowMessage("Нет ходов для сохранения.");
+			return;
+		}
+		if (SaveDialog1->Execute())
+		{
+			GameHistory->SaveToFile(SaveDialog1->FileName);
+			ShowMessage("Статистика сохранена.");
+		}
 }
 //---------------------------------------------------------------------------
 

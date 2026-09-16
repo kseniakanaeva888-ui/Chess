@@ -45,6 +45,7 @@ __published:
 	TButton *Button3;
 	TButton *Button4;
 	TSaveDialog *SaveDialog1;
+	TButton *Button5;
 	void __fastcall Button2Click(TObject *Sender);
 	void __fastcall Button1Click(TObject *Sender);
 	void __fastcall Image1MouseDown(TObject *Sender, TMouseButton Button, TShiftState Shift,
@@ -53,10 +54,12 @@ __published:
 	void __fastcall ComboBox1Change(TObject *Sender);
 	void __fastcall Button3Click(TObject *Sender);
 	void __fastcall Button4Click(TObject *Sender);
+	void __fastcall Button5Click(TObject *Sender);
 
 private:
     void SetupBoard();
-    void DrawBoard();
+	void DrawBoard();
+	void AddMoveToHistory(int fromRow, int fromCol, int toRow, int toCol, TPiece piece, bool capture, bool check);
     void UpdateStatusLabel();
     void UpdateGameTimerLabel();
     bool IsMoveValid(int fromRow, int fromCol, int toRow, int toCol);
