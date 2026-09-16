@@ -275,12 +275,9 @@ bool TForm1::IsSquareUnderAttack(int row, int col, PieceColor attacker)
                     case Pawn: {
                         int direction = (attacker == White) ? -1 : 1;
                         // Пешка бьёт по диагонали вперёд
-                        if (abs(c - col) == 1 && r + direction == row) {
-                            // Проверяем, есть ли там фигура (не пусто)
-                            if (Board[row][col].Type != None) {
-                                canAttack = true;
-                            }
-                        }
+						if (abs(c - col) == 1 && r + direction == row){
+							canAttack = true;
+						}
                         break;
                     }
                     case Knight:
@@ -463,9 +460,9 @@ void __fastcall TForm1::Image1MouseDown(TObject *Sender, TMouseButton Button,
 //---------------------------------------------------------------------------
 bool TForm1::CheckGameOver()
 {
-    PieceColor opponent = (CurrentPlayer == White) ? Black : White;
+	PieceColor opponent = CurrentPlayer;
 
-    if (IsCheck(opponent)) {
+	if (IsCheck(opponent)) {
         if (!HasLegalMoves(opponent)) {
             // МАТ!
             IsGameOver = true;
@@ -477,16 +474,23 @@ bool TForm1::CheckGameOver()
             ClearPossibleMoves();
             DrawBoard();
 
-            AnsiString winner = (CurrentPlayer == White) ? "Белые" : "Чёрные";
+			AnsiString winner = (CurrentPlayer == White) ? "Черные" : "Белые";
             Label1->Caption = winner + " победили! (Мат!)";
             ShowMessage(winner + " победили! Мат!");
             return true;
-        } else {
-            // ШАХ!
-            Label1->Caption = (CurrentPlayer == White) ? "Ход: Белые (Шах!)" : "Ход: Чёрные (Шах!)";
-            return false;
+		}
+		else {
+				// ШАХ!
+				AnsiString playerName =
+					(CurrentPlayer == White) ? "Белые" : "Чёрные";
+
+				Label1->Caption =
+					"Шах! Ход: " + playerName;
+
+				return false;
+			}
         }
-    } else {
+	else {
         if (!HasLegalMoves(opponent)) {
             // ПАТ!
             IsGameOver = true;
