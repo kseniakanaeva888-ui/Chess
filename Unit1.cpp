@@ -5,6 +5,7 @@
 #include "Unit1.h"
 #include <vector>
 #include <cstdlib>
+#include <pngimage.hpp>
 using namespace std;
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
@@ -50,6 +51,34 @@ __fastcall TForm1::TForm1(TComponent* Owner) : TForm(Owner)
 	GameTimerRunning = false;
 
 	GameMode = 0;
+
+	WhiteKingImg = new TPngImage();
+	WhiteQueenImg = new TPngImage();
+	WhiteRookImg = new TPngImage();
+	WhiteBishopImg = new TPngImage();
+	WhiteKnightImg = new TPngImage();
+	WhitePawnImg = new TPngImage();
+
+	BlackKingImg = new TPngImage();
+	BlackQueenImg = new TPngImage();
+	BlackRookImg = new TPngImage();
+	BlackBishopImg = new TPngImage();
+	BlackKnightImg = new TPngImage();
+	BlackPawnImg = new TPngImage();
+
+    WhiteKingImg->LoadFromFile("images\\white king.png");
+	WhiteQueenImg->LoadFromFile("images\\white queen.png");
+	WhiteRookImg->LoadFromFile("images\\white rook.png");
+	WhiteBishopImg->LoadFromFile("images\\white bishop.png");
+	WhiteKnightImg->LoadFromFile("images\\white knight.png");
+	WhitePawnImg->LoadFromFile("images\\white pawn.png");
+
+	BlackKingImg->LoadFromFile("images\\black king.png");
+	BlackQueenImg->LoadFromFile("images\\black queen.png");
+	BlackRookImg->LoadFromFile("images\\black rook.png");
+	BlackBishopImg->LoadFromFile("images\\black bishop.png");
+	BlackKnightImg->LoadFromFile("images\\black knight.png");
+	BlackPawnImg->LoadFromFile("images\\black pawn.png");
 
 	ComboBox1->ItemIndex = 0;
 }
@@ -99,9 +128,9 @@ void TForm1::DrawBoard()
 			int y = row * cellSize;
 
 			if ((row + col) % 2 == 0)
-				buffer->Canvas->Brush->Color = (TColor)0xEEEEE0;
+				buffer->Canvas->Brush->Color = (TColor)RGB(240, 217, 181);
 			else
-				buffer->Canvas->Brush->Color = (TColor)0x769656;
+				buffer->Canvas->Brush->Color = (TColor)RGB(181, 136, 99);
 
 			if (SelectedX == col && SelectedY == row)
 				buffer->Canvas->Brush->Color = clYellow;
@@ -114,32 +143,47 @@ void TForm1::DrawBoard()
 
 			buffer->Canvas->FillRect(Rect(x, y, x + cellSize, y + cellSize));
 
-			if (Board[row][col].Type != None) {
+			if (Board[row][col].Type != None)
+			{
+				TPngImage *img = NULL;
+
 				if (Board[row][col].Color == White)
-					buffer->Canvas->Font->Color = clWhite;
+				{
+					switch(Board[row][col].Type)
+					{
+						case King:   img = WhiteKingImg; break;
+						case Queen:  img = WhiteQueenImg; break;
+						case Rook:   img = WhiteRookImg; break;
+						case Bishop: img = WhiteBishopImg; break;
+						case Knight: img = WhiteKnightImg; break;
+						case Pawn:   img = WhitePawnImg; break;
+					}
+				}
 				else
-					buffer->Canvas->Font->Color = clBlack;
-
-				buffer->Canvas->Font->Size = cellSize * 0.6;
-				buffer->Canvas->Font->Style = TFontStyles() << fsBold;
-				buffer->Canvas->Brush->Style = bsClear;
-
-				wchar_t symbol;
-				switch(Board[row][col].Type) {
-				case King:   symbol = (Board[row][col].Color == White) ? L'♔' : L'♚'; break;
-				case Queen:  symbol = (Board[row][col].Color == White) ? L'♕' : L'♛'; break;
-				case Rook:   symbol = (Board[row][col].Color == White) ? L'♖' : L'♜'; break;
-				case Bishop: symbol = (Board[row][col].Color == White) ? L'♗' : L'♝'; break;
-				case Knight: symbol = (Board[row][col].Color == White) ? L'♘' : L'♞'; break;
-				case Pawn:   symbol = (Board[row][col].Color == White) ? L'♙' : L'♟'; break;
-				default:     symbol = L'?';
+				{
+					switch(Board[row][col].Type)
+					{
+						case King:   img = BlackKingImg; break;
+						case Queen:  img = BlackQueenImg; break;
+						case Rook:   img = BlackRookImg; break;
+						case Bishop: img = BlackBishopImg; break;
+						case Knight: img = BlackKnightImg; break;
+						case Pawn:   img = BlackPawnImg; break;
+					}
 				}
 
-
-
-				int tx = x + (cellSize - buffer->Canvas->TextWidth(symbol)) / 2;
-				int ty = y + (cellSize - buffer->Canvas->TextHeight(symbol)) / 2;
-				buffer->Canvas->TextOut(tx, ty, symbol);
+				if (img)
+				{
+					buffer->Canvas->StretchDraw(
+						Rect(
+							x + 4,
+							y + 4,
+							x + cellSize - 4,
+							y + cellSize - 4
+						),
+						img
+					);
+				}
 			}
 		}
 	}
@@ -192,13 +236,39 @@ void TForm1::ExecuteMove(int fromRow, int fromCol, int toRow, int toCol)
 			Board[toRow - 1][toCol] = TPiece(Empty, None);
 
 		resetCounter = true;
+
 	}
 
 	Board[toRow][toCol] = Board[fromRow][fromCol];
 
 	Board[fromRow][fromCol] = TPiece(Empty, None);
 
-    if (castling)
+    // запоминаем факт хода короля
+	if (movingPiece.Type == King)
+	{
+		if (movingPiece.Color == White)
+			WhiteKingMoved = true;
+		else
+			BlackKingMoved = true;
+	}
+
+	// запоминаем факт хода ладьи
+	if (movingPiece.Type == Rook)
+	{
+		if (fromRow == 7 && fromCol == 0)
+			WhiteLeftRookMoved = true;
+
+		if (fromRow == 7 && fromCol == 7)
+			WhiteRightRookMoved = true;
+
+		if (fromRow == 0 && fromCol == 0)
+			BlackLeftRookMoved = true;
+
+		if (fromRow == 0 && fromCol == 7)
+			BlackRightRookMoved = true;
+	}
+
+	if (castling)
 	{
 		// короткая
 		if (toCol == 6)
@@ -301,6 +371,11 @@ bool TForm1::IsMoveValid(int fromRow, int fromCol, int toRow, int toCol)
 						if (WhiteRightRookMoved)
 							return false;
 
+						if (Board[7][7].Type != Rook ||
+							Board[7][7].Color != White)
+							return false;
+
+
 						if (Board[7][5].Type != None ||
 							Board[7][6].Type != None)
 							return false;
@@ -319,6 +394,10 @@ bool TForm1::IsMoveValid(int fromRow, int fromCol, int toRow, int toCol)
 					if (toCol == 2)
 					{
 						if (WhiteLeftRookMoved)
+							return false;
+
+                        if (Board[7][0].Type != Rook ||
+							Board[7][0].Color != White)
 							return false;
 
 						if (Board[7][1].Type != None ||
@@ -347,6 +426,10 @@ bool TForm1::IsMoveValid(int fromRow, int fromCol, int toRow, int toCol)
 						if (BlackRightRookMoved)
 							return false;
 
+                        if (Board[0][7].Type != Rook ||
+							Board[0][7].Color != Black)
+							return false;
+
 						if (Board[0][5].Type != None ||
 							Board[0][6].Type != None)
 							return false;
@@ -365,6 +448,10 @@ bool TForm1::IsMoveValid(int fromRow, int fromCol, int toRow, int toCol)
 					if (toCol == 2)
 					{
 						if (BlackLeftRookMoved)
+							return false;
+
+                        if (Board[0][0].Type != Rook ||
+							Board[0][0].Color != Black)
 							return false;
 
 						if (Board[0][1].Type != None ||
@@ -632,22 +719,23 @@ bool TForm1::HasLegalMoves(PieceColor player)
 
 void TForm1::UpdateStatusLabel()
 {
-	 if (IsGameOver) {
-		  Label1->Caption = GameOverMessage;
-		  return;
-	 }
+  if (IsGameOver) {
+    Label1->Caption = GameOverMessage;
+    return;
+  }
 
-	 if (!GameTimerRunning) {
-		  Label1->Caption = "Нажмите 'Новая игра'";
-		  return;
-	 }
+  if (!GameTimerRunning) {
+    Label1->Caption = "Нажмите 'Новая игра'";
+    return;
+  }
 
-	 if (CheckFlag) {
-		  Label1->Caption = (CurrentPlayer == White) ? "Шах! Ход: Белые" : "Шах! Ход: Чёрные";
-	 }
-	 else {
-		  Label1->Caption = (CurrentPlayer == White) ? "Ход: Белые" : "Ход: Чёрные";
-	 }
+  if (CheckFlag) {
+    Label1->Caption = (CurrentPlayer == White) ? "Шах! Ход: Белые" : "Шах! Ход: Чёрные";
+  }
+  else {
+    Label1->Caption = (CurrentPlayer == White) ? "Ход: Белые" : "Ход: Чёрные";
+  }
+
 }
 
 
@@ -677,9 +765,8 @@ TShiftState Shift, int X, int Y)
 	if (IsGameOver) return;
 
     // ===== ЕСЛИ ХОДИТ КОМПЬЮТЕР — ИГНОРИРУЕМ КЛИКИ =====
-    if (GameMode != 0 && CurrentPlayer == Black) {
-        Label1->Caption = "Сейчас ходит компьютер...";
-        return;
+	if (GameMode != 0 && CurrentPlayer == Black) {
+		return;
 	}
 
     int cellSize = Image1->Width / 8;
@@ -749,7 +836,7 @@ TShiftState Shift, int X, int Y)
     }
 
     DrawBoard();
-    UpdateStatusLabel();
+	UpdateStatusLabel();
 }
 //---------------------------------------------------------------------------
 bool TForm1::CheckGameOver()
@@ -808,7 +895,7 @@ bool TForm1::InsufficientMaterial()
     int otherPieces = 0;
 
     for (int r = 0; r < 8; r++)
-    {
+	{
         for (int c = 0; c < 8; c++)
         {
             TPiece p = Board[r][c];
@@ -824,7 +911,7 @@ bool TForm1::InsufficientMaterial()
                 default:
                     otherPieces++;
             }
-        }
+		}
     }
 
     if (otherPieces > 0)
@@ -837,21 +924,24 @@ bool TForm1::InsufficientMaterial()
 
 void TForm1::UpdateGameState()
 {
-	 PieceColor opponent = (CurrentPlayer == White) ? Black: White;
+    PieceColor sideToMove =
+        (CurrentPlayer == White)
+        ? Black
+        : White;
 
-	 CheckFlag = IsCheck(opponent);
-	 bool hasMoves = HasLegalMoves(opponent);
+    CheckFlag = IsCheck(sideToMove);
 
-	 IsCheckmate = CheckFlag && !hasMoves;
-	 IsStalemate = !CheckFlag && !hasMoves;
+    bool hasMoves =
+        HasLegalMoves(sideToMove);
 
-	 if (InsufficientMaterial())
-	 {
-		 IsDrawByMaterial = true;
-	 }
+    IsCheckmate =
+        CheckFlag && !hasMoves;
 
+    IsStalemate =
+        !CheckFlag && !hasMoves;
 
-
+    IsDrawByMaterial =
+		InsufficientMaterial();
 }
 
 void __fastcall TForm1::Button1Click(TObject *Sender)
@@ -866,12 +956,12 @@ void __fastcall TForm1::Button1Click(TObject *Sender)
 	IsGameOver = false;
 	GameSeconds = 0;
 	MoveCount = 0;
-    bool WhiteKingMoved = false;
-	bool BlackKingMoved = false;
-	bool WhiteLeftRookMoved = false;
-	bool WhiteRightRookMoved = false;
-	bool BlackLeftRookMoved = false;
-	bool BlackRightRookMoved = false;
+	WhiteKingMoved = false;
+	BlackKingMoved = false;
+	WhiteLeftRookMoved = false;
+	WhiteRightRookMoved = false;
+	BlackLeftRookMoved = false;
+	BlackRightRookMoved = false;
 	GameOverMessage = "";
 	ClearPossibleMoves();
 	DrawBoard();
@@ -891,104 +981,126 @@ void __fastcall TForm1::Button2Click(TObject *Sender)
 //---------------------------------------------------------------------------
 void __fastcall TForm1::ComboBox1Change(TObject *Sender)
 {
-	GameMode = ComboBox1->ItemIndex;
+    int newMode = ComboBox1->ItemIndex;
 
-    // Если игра активна - перезапускаем
-    if (GameTimerRunning) {
-        Button1Click(Sender);
+    // Если партия уже идёт
+    if (GameTimerRunning && !IsGameOver)
+    {
+        int result = Application->MessageBox(
+            L"Закончить текущую партию?",
+            L"Смена режима",
+            MB_YESNO | MB_ICONQUESTION
+        );
+
+        if (result == IDNO)
+        {
+            // Возвращаем старый режим в ComboBox
+            ComboBox1->ItemIndex = GameMode;
+            return;
+        }
+
+        // Игру останавливаем
+        GameTimerRunning = false;
+        Timer1->Enabled = false;
+
+        Label1->Caption =
+            "Режим изменён. Нажмите 'Новая игра'";
     }
+
+    GameMode = newMode;
 }
 
 int TForm1::GetPieceValue(TPiece piece)
 {
-    if (piece.Type == None) return 0;
+	if (piece.Type == None) return 0;
 
-    switch(piece.Type) {
-        case Pawn:   return 1;
-        case Knight: return 3;
-        case Bishop: return 3;
-        case Rook:   return 5;
-        case Queen:  return 9;
+	switch(piece.Type) {
+		case Pawn:   return 1;
+		case Knight: return 3;
+		case Bishop: return 3;
+		case Rook:   return 5;
+		case Queen:  return 9;
         case King:   return 100;
-        default:     return 0;
+		default:     return 0;
     }
 }
 
 int TForm1::EvaluateMove(int fromRow, int fromCol, int toRow, int toCol)
 {
-    TPiece piece = Board[fromRow][fromCol];
-    TPiece target = Board[toRow][toCol];
+	TPiece piece = Board[fromRow][fromCol];
+	TPiece target = Board[toRow][toCol];
 
     int score = 0;
 
-    // 1. Взятие фигуры
-    if (target.Type != None) {
-        score += GetPieceValue(target) * 10;
-    }
+	// взятие фигуры
+	if (target.Type != None) {
+		score += GetPieceValue(target) * 10 - GetPieceValue(piece) * 5;
+	}
 
-    // 2. Шах (проверяем временным ходом)
-    TPiece savedFrom = Board[fromRow][fromCol];
-    TPiece savedTo = Board[toRow][toCol];
+	// шах (проверяем временным ходом)
+	TPiece savedFrom = Board[fromRow][fromCol];
+	TPiece savedTo = Board[toRow][toCol];
 
-    Board[toRow][toCol] = Board[fromRow][fromCol];
+	Board[toRow][toCol] = Board[fromRow][fromCol];
 	Board[fromRow][fromCol] = TPiece(Empty, None);
 
 	PieceColor opponent = (piece.Color == White) ? Black : White;
 
-	int attackPower = AttackValue(toRow, toCol, opponent);
+	int attackers = CountAttackers(toRow,toCol,opponent);
 
-	int defendPower = AttackValue(toRow, toCol, piece.Color);
+	int defenders = CountAttackers(toRow,toCol,piece.Color);
 
-	if (attackPower > defendPower)
+    if (attackers > defenders)
 	{
-		score -= GetPieceValue(piece) * (attackPower - defendPower);
+		score -=
+			GetPieceValue(piece) * 20;
 	}
 
-	if (IsCheck(opponent)) {
-        score += 50;  // Бонус за шах
-    }
 
-    // Проверяем мат
-    if (IsCheck(opponent) && !HasLegalMoves(opponent)) {
-        score += 999999;  // Максимальный бонус за мат
-    }
 
-    Board[fromRow][fromCol] = savedFrom;
-    Board[toRow][toCol] = savedTo;
-
-    // 3. Продвижение пешки
-    if (piece.Type == Pawn) {
-        int direction = (piece.Color == White) ? -1 : 1;
-        if (toRow == fromRow + direction) {
-            score += 1;
-        }
-        int targetRow = (piece.Color == White) ? toRow : (7 - toRow);
-        score += targetRow * 2;
-	}
-
-	//поощрение развития центральных пешек
-    if (MoveCount < 12 && piece.Type == Pawn)
+    if (IsCheck(opponent) &&
+    CountAttackers(toRow,toCol,piece.Color) >
+    CountAttackers(toRow,toCol,opponent))
 	{
-		if ((piece.Color == Black && fromRow > 1) ||
-			(piece.Color == White && fromRow < 6))
-		{
-			score -= 8;
-		}
+		score += 10;
 	}
 
-	// штраф за повторные ходы пешкой
-    if (MoveCount < 12 && piece.Type == Pawn)
+	// проверяем мат
+	if (IsCheck(opponent) && !HasLegalMoves(opponent)) {
+		score += 999999;  // Максимальный бонус за мат
+	}
+
+	Board[fromRow][fromCol] = savedFrom;
+	Board[toRow][toCol] = savedTo;
+
+	// продвижение пешки
+	if (piece.Type == Pawn) {
+		int direction = (piece.Color == White) ? -1 : 1;
+
+		int targetRow = (piece.Color == White) ? toRow : (7 - toRow);
+		score += targetRow;
+	}
+
+	if (MoveCount < 12 && piece.Type == Pawn)
 	{
 		if (fromCol == 3 || fromCol == 4) // d,e
-			score += 10;
+			score += 4;
 		else
 			score += 3;
 	}
 
-    // 4. Центр доски
-    if (toRow >= 2 && toRow <= 5 && toCol >= 2 && toCol <= 5) {
+	// центр доски
+    if (CanPieceAttackSquare(toRow,toCol,3,3))
+    score += 5;
+
+	if (CanPieceAttackSquare(toRow,toCol,3,4))
 		score += 5;
-	}
+
+	if (CanPieceAttackSquare(toRow,toCol,4,3))
+		score += 5;
+
+	if (CanPieceAttackSquare(toRow,toCol,4,4))
+		score += 5;
 
 	// открытые вертикали
 	if (piece.Type == Rook || piece.Type == Queen)
@@ -997,7 +1109,7 @@ int TForm1::EvaluateMove(int fromRow, int fromCol, int toRow, int toCol)
 			score += 15;
 	}
 
-    bool ownPawn = false;
+	bool ownPawn = false;
 	// полуоткрытые вертикали
 	for (int r = 0; r < 8; r++)
 	{
@@ -1012,10 +1124,10 @@ int TForm1::EvaluateMove(int fromRow, int fromCol, int toRow, int toCol)
 	if (!ownPawn)
 		score += 8;
 	// развитие коней и слонов, штраф за ранний выход ферзя и ладьи
-    if (MoveCount < 12)
+	if (MoveCount < 12)
 	{
 		if (piece.Type == Knight || piece.Type == Bishop)
-			score += 20;
+			score += 8;
 
 		if (piece.Type == Queen)
 			score -= 15;
@@ -1024,54 +1136,128 @@ int TForm1::EvaluateMove(int fromRow, int fromCol, int toRow, int toCol)
 			score -= 10;
 	}
 
+	//ходы королем
+	if (MoveCount < 20 && piece.Type == King)
+	{
+		if (abs(toCol - fromCol) == 2)
+			score += 40; //рокировка
+
+		else if (!IsCheck)
+			score -= 20; //бесполезный ход
+	}
+
 	return score;
+}
+
+int TForm1::OpponentBestResponse(PieceColor opponent)
+{
+	int best = -999999;
+
+	for (int r = 0; r < 8; r++)
+	{
+		for (int c = 0; c < 8; c++)
+		{
+			if (Board[r][c].Color != opponent)
+				continue;
+
+			for (int tr = 0; tr < 8; tr++)
+			{
+                for (int tc = 0; tc < 8; tc++)
+                {
+                    if (!IsMoveValid(r,c,tr,tc))
+                        continue;
+
+                    TPiece savedFrom = Board[r][c];
+                    TPiece savedTo   = Board[tr][tc];
+
+                    Board[tr][tc] = Board[r][c];
+                    Board[r][c] = TPiece(Empty,None);
+
+                    int score = EvaluateMove(r, c, tr, tc);
+
+					if (IsCheck(Black))
+						score += 50;
+
+					if (IsCheck(Black) && !HasLegalMoves(Black))
+					{
+						score += 999999;
+					}
+
+                    if (score > best)
+						best = score;
+
+                    Board[r][c] = savedFrom;
+                    Board[tr][tc] = savedTo;
+                }
+            }
+        }
+    }
+
+    return best;
 }
 
 bool TForm1::IsOpenFile(int col)
 {
-    for (int r = 0; r < 8; r++)
-    {
-        if (Board[r][col].Type == Pawn)
-            return false;
-    }
-    return true;
+	for (int r = 0; r < 8; r++)
+	{
+		if (Board[r][col].Type == Pawn)
+			return false;
+	}
+	return true;
 }
 void TForm1::SmartMove()
 {
 	if (IsGameOver) return;
 	if (GameMode == 0) return;
 
-	PieceColor botColor = Black;
-
-    // Если сейчас не ход AI - выходим
-	if (CurrentPlayer != botColor) return;
+	// Если сейчас не ход AI - выходим
+	if (CurrentPlayer != Black) return;
 
 	// Структура для хода
-    struct ScoredMove {
-        int fromRow, fromCol, toRow, toCol;
+	struct ScoredMove {
+		int fromRow, fromCol, toRow, toCol;
 		int score;
-    };
+	};
 
-    std::vector<ScoredMove> moves;
+	std::vector<ScoredMove> moves;
 
-    // Собираем все возможные ходы
-    for (int r = 0; r < 8; r++) {
-        for (int c = 0; c < 8; c++) {
-			if (Board[r][c].Color == botColor) {
-                for (int tr = 0; tr < 8; tr++) {
-                    for (int tc = 0; tc < 8; tc++) {
-                        if (IsMoveValid(r, c, tr, tc)) {
+	// Собираем все возможные ходы
+	for (int r = 0; r < 8; r++) {
+		for (int c = 0; c < 8; c++) {
+			if (Board[r][c].Color == Black) {
+				for (int tr = 0; tr < 8; tr++) {
+					for (int tc = 0; tc < 8; tc++) {
+						if (IsMoveValid(r, c, tr, tc))  {
 							ScoredMove move;
-                            move.fromRow = r;
-                            move.fromCol = c;
-                            move.toRow = tr;
+
+							move.fromRow = r;
+							move.fromCol = c;
+							move.toRow = tr;
 							move.toCol = tc;
-                            move.score = EvaluateMove(r, c, tr, tc);
-                            moves.push_back(move);
-                        }
+
+							int myScore = EvaluateMove(r, c, tr, tc);
+
+							// временно делаем ход
+							TPiece savedFrom = Board[r][c];
+							TPiece savedTo   = Board[tr][tc];
+
+							Board[tr][tc] = Board[r][c];
+							Board[r][c] = TPiece(Empty, None);
+
+							// лучший ответ белых
+							int enemyScore = OpponentBestResponse(White);
+
+							// откатываем
+							Board[r][c] = savedFrom;
+							Board[tr][tc] = savedTo;
+
+							move.score = myScore - enemyScore;
+
+							moves.push_back(move);
+						}
 					}
-                }
-            }
+				}
+			}
 		}
 	}
 
@@ -1079,46 +1265,47 @@ void TForm1::SmartMove()
 
 	int index = 0;
 
-    if (GameMode == 1) {
-        // ===== ЛЁГКИЙ РЕЖИМ: случайный ход =====
-        index = rand() % moves.size();
-    } else {
-        // ===== СЛОЖНЫЙ РЕЖИМ: лучший ход =====
-        int bestScore = moves[0].score;
-        for (int i = 1; i < moves.size(); i++) {
-            if (moves[i].score > bestScore) {
-                bestScore = moves[i].score;
-                index = i;
-            }
-        }
-    }
+	if (GameMode == 1) {
+		// ===== ЛЁГКИЙ РЕЖИМ: случайный ход =====
+		index = rand() % moves.size();
+	} else {
+		// ===== СЛОЖНЫЙ РЕЖИМ: лучший ход =====
+		int bestScore = moves[0].score;
+		for (int i = 1; i < moves.size(); i++) {
+			if (moves[i].score > bestScore) {
+				bestScore = moves[i].score;
+				index = i;
+			}
+		}
+	}
 
-    ScoredMove best = moves[index];
+	ScoredMove best = moves[index];
 
-    // Выполняем ход
-    SelectedX = -1;
-    SelectedY = -1;
-    ClearPossibleMoves();
-
-    // Сохраняем текущего игрока
-    PieceColor playerBeforeMove = CurrentPlayer;
+	// Выполняем ход
+	SelectedX = -1;
+	SelectedY = -1;
+	ClearPossibleMoves();
 
 	ExecuteMove(best.fromRow, best.fromCol, best.toRow, best.toCol);
 	MoveCount++;
 
-    // Обновляем состояние игры
-    UpdateGameState();
+	// Меняем игрока (если игра не окончена)
+	if (!IsCheckmate && !IsStalemate) {
+		CurrentPlayer = (CurrentPlayer == White) ? Black : White;
+	}
 
-    // Меняем игрока (если игра не окончена)
-    if (!IsCheckmate && !IsStalemate) {
-        CurrentPlayer = (CurrentPlayer == White) ? Black : White;
-    }
-
-    DrawBoard();
-    UpdateStatusLabel();
+	UpdateGameState();
 
     // Проверяем окончание игры
-    CheckGameOver();
+	if (CheckGameOver())
+	{
+		DrawBoard();
+		UpdateStatusLabel();
+		return;
+	}
+
+	DrawBoard();
+	UpdateStatusLabel();
 }
 
 
@@ -1128,7 +1315,7 @@ void __fastcall TForm1::Button3Click(TObject *Sender)
 	if (IsGameOver)
 			return;
 
-    if (GameMode != 0)
+	if (GameMode != 0)
 	{
 		ShowMessage("Компьютер не принимает предложения ничьей.");
 		return;
@@ -1140,10 +1327,10 @@ void __fastcall TForm1::Button3Click(TObject *Sender)
 	AnsiString msg =
 		player + " предлагают ничью. Согласны?";
 
-    if (Application->MessageBox(
-        UnicodeString(msg).c_str(),
-        L"Предложение ничьей",
-        MB_YESNO | MB_ICONQUESTION) == IDYES)
+	if (Application->MessageBox(
+		UnicodeString(msg).c_str(),
+		L"Предложение ничьей",
+		MB_YESNO | MB_ICONQUESTION) == IDYES)
 	{
 		IsGameOver = true;
 		GameTimerRunning = false;
@@ -1154,6 +1341,67 @@ void __fastcall TForm1::Button3Click(TObject *Sender)
 		UpdateStatusLabel();
 		DrawBoard();
 	}
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::Button4Click(TObject *Sender)
+{
+	TStringList *list = new TStringList;
+
+    try
+    {
+		for (int row = 0; row < 8; row++)
+        {
+            for (int col = 0; col < 8; col++)
+            {
+                if (Board[row][col].Type != None)
+                {
+                    String pieceName;
+
+                    switch (Board[row][col].Type)
+                    {
+                        case Pawn:   pieceName = "Pawn"; break;
+                        case Knight: pieceName = "Knight"; break;
+                        case Bishop: pieceName = "Bishop"; break;
+                        case Rook:   pieceName = "Rook"; break;
+                        case Queen:  pieceName = "Queen"; break;
+                        case King:   pieceName = "King"; break;
+                    }
+
+                    String color =
+                        (Board[row][col].Color == White)
+                        ? "White"
+                        : "Black";
+
+                    char fileLetter = 'A' + col;
+                    int rank = 8 - row;
+
+                    list->Add(
+                        color + " " +
+                        pieceName +
+                        " : " +
+                        String(fileLetter) +
+                        IntToStr(rank)
+                    );
+                }
+            }
+        }
+
+		if (SaveDialog1->Execute())
+		{
+			list->SaveToFile(
+				SaveDialog1->FileName
+			);
+
+			ShowMessage(
+				"Позиция сохранена"
+			);
+		}
+    }
+    __finally
+    {
+        delete list;
+    }
 }
 //---------------------------------------------------------------------------
 

@@ -7,6 +7,8 @@
 #include <Vcl.StdCtrls.hpp>
 #include <Vcl.Forms.hpp>
 #include <Vcl.ExtCtrls.hpp>
+#include <pngimage.hpp>
+#include <Vcl.Dialogs.hpp>
 //---------------------------------------------------------------------------
 
 // рхош
@@ -41,6 +43,8 @@ __published:
 	TLabel *Label3;
 	TComboBox *ComboBox1;
 	TButton *Button3;
+	TButton *Button4;
+	TSaveDialog *SaveDialog1;
 	void __fastcall Button2Click(TObject *Sender);
 	void __fastcall Button1Click(TObject *Sender);
 	void __fastcall Image1MouseDown(TObject *Sender, TMouseButton Button, TShiftState Shift,
@@ -48,6 +52,7 @@ __published:
 	void __fastcall Timer1Timer(TObject *Sender);
 	void __fastcall ComboBox1Change(TObject *Sender);
 	void __fastcall Button3Click(TObject *Sender);
+	void __fastcall Button4Click(TObject *Sender);
 
 private:
     void SetupBoard();
@@ -76,6 +81,20 @@ private:
 	bool CanPieceAttackSquare(int fromRow, int fromCol, int toRow, int toCol);
 	int CountAttackers(int row, int col, PieceColor color);
 	int AttackValue(int row, int col, PieceColor color);
+	int OpponentBestResponse(PieceColor opponent);
+	TPngImage *WhiteKingImg;
+    TPngImage *WhiteQueenImg;
+    TPngImage *WhiteRookImg;
+    TPngImage *WhiteBishopImg;
+    TPngImage *WhiteKnightImg;
+    TPngImage *WhitePawnImg;
+
+    TPngImage *BlackKingImg;
+    TPngImage *BlackQueenImg;
+    TPngImage *BlackRookImg;
+    TPngImage *BlackBishopImg;
+    TPngImage *BlackKnightImg;
+	TPngImage *BlackPawnImg;
 
 public:
 	__fastcall TForm1(TComponent* Owner);
