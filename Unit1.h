@@ -38,11 +38,16 @@ __published:
 	TLabel *Label2;
 	TButton *Button1;
 	TButton *Button2;
+	TLabel *Label3;
+	TComboBox *ComboBox1;
+	TButton *Button3;
 	void __fastcall Button2Click(TObject *Sender);
 	void __fastcall Button1Click(TObject *Sender);
 	void __fastcall Image1MouseDown(TObject *Sender, TMouseButton Button, TShiftState Shift,
           int X, int Y);
 	void __fastcall Timer1Timer(TObject *Sender);
+	void __fastcall ComboBox1Change(TObject *Sender);
+	void __fastcall Button3Click(TObject *Sender);
 
 private:
     void SetupBoard();
@@ -57,7 +62,20 @@ private:
     bool IsCheck(PieceColor kingColor);
 	bool HasLegalMoves(PieceColor player);
 	AnsiString GameOverMessage;
-    bool CheckGameOver();
+	bool CheckGameOver();
+	void UpdateGameState();
+	bool CheckFlag;
+	bool IsCheckmate;
+	bool IsStalemate;
+	int GameMode;
+    void SmartMove();
+	int GetPieceValue(TPiece piece);
+	int EvaluateMove(int fromRow, int fromCol, int toRow, int toCol);
+    bool InsufficientMaterial();
+	bool IsOpenFile(int col);
+	bool CanPieceAttackSquare(int fromRow, int fromCol, int toRow, int toCol);
+	int CountAttackers(int row, int col, PieceColor color);
+	int AttackValue(int row, int col, PieceColor color);
 
 public:
 	__fastcall TForm1(TComponent* Owner);
